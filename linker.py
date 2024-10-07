@@ -1,3 +1,10 @@
+
+"""
+developer: Ookami
+vision: 0.0.4
+新增和github文件同步功能
+
+"""
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -8,21 +15,17 @@ from PIL import Image, ImageTk, ImageDraw, ImageFont
 import io
 import textwrap
 
-"""
-developer: Ookami
-vision: 0.0.3
-
-"""
 # GitHub 仓库页面 URL 和信息
 repository_url = "https://github.com/saookami/hihi"
 username = "saookami"
 repository = "hihi"
 branch = "main"  # 通常是 'main' 或 'master'
-local_data_dir = "data"  # 存储图片和文本文件的本地文件夹
+local_data_dir = "hihi"  # 存储图片和文本文件的本地文件夹
 
 # 确保本地文件夹存在
 if not os.path.exists(local_data_dir):
     os.makedirs(local_data_dir)
+
 
 # 获取 GitHub 仓库页面的 HTML 内容
 def get_github_files(url):
@@ -33,6 +36,7 @@ def get_github_files(url):
     except (requests.RequestException, ValueError):
         print("无法连接到 GitHub，使用本地缓存文件")
         return None
+
 
 # 提取页面中所有文件名，并生成对应的 Raw URL
 def extract_files_from_html(html_content):
@@ -49,6 +53,7 @@ def extract_files_from_html(html_content):
             file_links.append(raw_url)
     return file_links
 
+
 # 从远程下载文件并保存到本地
 def download_and_save_file(url, local_path):
     try:
@@ -58,6 +63,20 @@ def download_and_save_file(url, local_path):
             file.write(response.content)
     except (requests.RequestException, ValueError):
         print(f"下载失败：{url}")
+
+
+# 删除本地多余的文件
+def remove_obsolete_files(github_files):
+    # 获取 GitHub 文件的文件名（不包含路径）
+    github_file_names = [os.path.basename(url) for url in github_files]
+
+    # 遍历本地文件夹，删除不存在于 GitHub 上的文件
+    for local_file in os.listdir(local_data_dir):
+        if local_file not in github_file_names:
+            local_file_path = os.path.join(local_data_dir, local_file)
+            print(f"删除本地文件：{local_file_path}")
+            os.remove(local_file_path)
+
 
 # 检查并下载更新的文件到本地
 def update_local_files(file_links):
@@ -70,12 +89,14 @@ def update_local_files(file_links):
             print(f"下载新文件：{file_name}")
             download_and_save_file(file_url, local_path)
 
+
 # 从本地文件夹中读取文件名
 def get_local_files():
     local_files = [os.path.join(local_data_dir, file) for file in os.listdir(local_data_dir)]
     image_files = [file for file in local_files if file.endswith(('.png', '.jpg', '.jpeg'))]
     text_files = [file for file in local_files if file.endswith('.txt')]
     return image_files, text_files
+
 
 # 随机选择一个图片和一个文本
 def select_random_files():
@@ -85,6 +106,7 @@ def select_random_files():
     selected_image = random.choice(image_files)
     selected_text = random.choice(text_files)
     return selected_image, selected_text
+
 
 # 从本地获取图片，并保持长宽比
 def fetch_image(image_path, max_width=400, max_height=300):
@@ -96,15 +118,18 @@ def fetch_image(image_path, max_width=400, max_height=300):
     image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)  # 调整图片大小，并保持长宽比
     return image
 
+
 # 从本地获取文本
 def fetch_text(text_path):
     with open(text_path, 'r', encoding='utf-8') as file:
         return file.read().strip()
 
+
 # 将长文本分成多行
 def wrap_text(text, max_width=20):
     wrapped_text = "\n".join(textwrap.wrap(text, width=max_width))  # 将文本按指定宽度换行
     return wrapped_text
+
 
 # 更新内容并在 Tkinter 窗口中显示
 def update_content(image_path, text_path):
@@ -135,13 +160,15 @@ def update_content(image_path, text_path):
 
     animate_text()  # 启动文字动画
 
+
 # 获取 GitHub 仓库中的所有文件链接
 html_content = get_github_files(repository_url)
 file_links = extract_files_from_html(html_content)
 
-# 如果能够连接到 GitHub，检查更新
+# 如果能够连接到 GitHub，检查更新并删除本地过时文件
 if file_links:
-    update_local_files(file_links)
+    update_local_files(file_links)  # 下载新的文件
+    remove_obsolete_files(file_links)  # 删除已经被 GitHub 删除的文件
 
 # 随机选择图片和文本文件
 selected_image, selected_text = select_random_files()
